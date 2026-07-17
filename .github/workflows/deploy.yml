@@ -1,0 +1,45 @@
+name: Deploy MyApp
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build-and-deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::238395401573:role/github-actions-ecr-push
+          aws-region: ap-south-1
+
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+
+      - name: Build Docker image
+        run: |
+          docker build -t myapp .
+
+
+      - name: Tag Docker image
+        run: |
+          docker tag myapp:latest \
+          238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
+
+
+      - name: Push image to ECR
+        run: |
+          docker push \
+          238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
