@@ -9,17 +9,20 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
-      # Step 1: Download repository code
+      # Step 1: Checkout repository
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Step 2: Configure AWS
+      # Step 2: Configure AWS Credentials (OIDC)
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::238395401573:role/github-actions-ecr-push
           aws-region: ap-south-1
 
       # Step 3: Login to Amazon ECR
@@ -32,17 +35,17 @@ jobs:
         run: |
           docker build -t myapp .
 
-      # Step 5: Tag Image
-      - name: Tag Image
+      # Step 5: Tag Docker Image
+      - name: Tag Docker Image
         run: |
           docker tag myapp:latest 238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
 
-      # Step 6: Push Image
-      - name: Push Image
+      # Step 6: Push Docker Image to ECR
+      - name: Push Docker Image
         run: |
           docker push 238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
 
-      # Step 7: Deploy to EC2
+      # Step 7: Deploy on EC2
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
