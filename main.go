@@ -7,7 +7,7 @@ import
 )
 
 func handler(w  http.ResponseWriter , r *http.Request ) { 
-fmt.Fprint(w, "Hello from zero trust Devops project")
+fmt.Fprint(w, "Hello from Automatic CI/CD Pipeline 🚀")
 }
 
 func main() { 
