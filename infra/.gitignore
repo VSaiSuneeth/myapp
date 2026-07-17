@@ -1,0 +1,20 @@
+# Go
+myapp
+myapp.exe
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Terraform plan
+*.tfplan
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
