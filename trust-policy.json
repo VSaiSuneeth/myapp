@@ -12,7 +12,7 @@
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
         },
         "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:VSaiSuneeth/myapp:*"
+          "token.actions.githubusercontent.com:sub": "repo:VSaiSuneeth@219394212/myapp@1303257192:*"
         }
       }
     }

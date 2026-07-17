@@ -1,0 +1,31 @@
+{
+    "Role": {
+        "Path": "/",
+        "RoleName": "github-actions-ecr-push",
+        "RoleId": "AROATPALZEVS5TVYB4FTY",
+        "Arn": "arn:aws:iam::238395401573:role/github-actions-ecr-push",
+        "CreateDate": "2026-07-17T04:49:26+00:00",
+        "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Federated": "arn:aws:iam::238395401573:oidc-provider/token.actions.githubusercontent.com"
+                    },
+                    "Action": "sts:AssumeRoleWithWebIdentity",
+                    "Condition": {
+                        "StringEquals": {
+                            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                        },
+                        "StringLike": {
+                            "token.actions.githubusercontent.com:sub": "repo:VSaiSuneeth/myapp:*"
+                        }
+                    }
+                }
+            ]
+        },
+        "MaxSessionDuration": 3600,
+        "RoleLastUsed": {}
+    }
+}
