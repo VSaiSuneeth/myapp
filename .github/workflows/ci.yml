@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: Minimal OIDC Test
 
 on:
   push:
@@ -10,24 +10,12 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  aws-auth-test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.26"
-
-      - name: Verify Go
-        run: go version
-
-      - name: Build Go Application
-        run: |
-          go build -o myapp .
 
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -35,41 +23,6 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build Docker Image
+      - name: Verify AWS Identity
         run: |
-          docker build \
-            -t ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:dev .
-
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.6
-
-      - name: Scan Docker Image
-        run: |
-          trivy image --severity HIGH,CRITICAL --exit-code 1 ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:dev
-
-      - name: Generate SBOM
-        run: |
-          trivy image \
-            --format cyclonedx \
-            --output sbom.cdx.json \
-            ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:dev
-
-      - name: Tag and Push Final Images to ECR
-        run: |
-          docker tag ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:dev \
-            ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
-          docker push ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
-          
-          docker tag ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:dev \
-            ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:latest
-          docker push ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:latest
-
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom
-          path: sbom.cdx.json
+          aws sts get-caller-identity
