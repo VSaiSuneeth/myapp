@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:a8ba5b88-5b47-4f51-8fee-7586cf093d9b",
+  "serialNumber": "urn:uuid:7a92d032-10c5-42c9-8c6c-163a9bfdd976",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-07-16T19:03:25+00:00",
+    "timestamp": "2026-07-17T03:15:43+00:00",
     "tools": {
       "components": [
         {
@@ -20,10 +20,10 @@
       ]
     },
     "component": {
-      "bom-ref": "pkg:oci/myapp@sha256:4b5fe6437a93928ece33ea0981559a56b769ad1de58dca4a9eda015a1846963e?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fmyapp",
+      "bom-ref": "pkg:oci/myapp@sha256:4b5fe6437a93928ece33ea0981559a56b769ad1de58dca4a9eda015a1846963e?arch=amd64&repository_url=238395401573.dkr.ecr.ap-south-1.amazonaws.com%2Fmyapp",
       "type": "container",
       "name": "myapp:dev",
-      "purl": "pkg:oci/myapp@sha256:4b5fe6437a93928ece33ea0981559a56b769ad1de58dca4a9eda015a1846963e?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fmyapp",
+      "purl": "pkg:oci/myapp@sha256:4b5fe6437a93928ece33ea0981559a56b769ad1de58dca4a9eda015a1846963e?arch=amd64&repository_url=238395401573.dkr.ecr.ap-south-1.amazonaws.com%2Fmyapp",
       "properties": [
         {
           "name": "aquasecurity:trivy:DiffID",
@@ -91,7 +91,15 @@
         },
         {
           "name": "aquasecurity:trivy:RepoDigest",
+          "value": "238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp@sha256:4b5fe6437a93928ece33ea0981559a56b769ad1de58dca4a9eda015a1846963e"
+        },
+        {
+          "name": "aquasecurity:trivy:RepoDigest",
           "value": "myapp@sha256:4b5fe6437a93928ece33ea0981559a56b769ad1de58dca4a9eda015a1846963e"
+        },
+        {
+          "name": "aquasecurity:trivy:RepoTag",
+          "value": "238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest"
         },
         {
           "name": "aquasecurity:trivy:RepoTag",
@@ -110,22 +118,7 @@
   },
   "components": [
     {
-      "bom-ref": "80315fcb-f98e-4bad-9a6d-b3f70cf4c8d7",
-      "type": "application",
-      "name": "app/myapp",
-      "properties": [
-        {
-          "name": "aquasecurity:trivy:Class",
-          "value": "lang-pkgs"
-        },
-        {
-          "name": "aquasecurity:trivy:Type",
-          "value": "gobinary"
-        }
-      ]
-    },
-    {
-      "bom-ref": "e9d582e0-4b06-4a26-a57f-5e24ef5387e5",
+      "bom-ref": "a545c5b3-5a94-47a1-aefb-8887552431aa",
       "type": "operating-system",
       "name": "debian",
       "version": "12.15",
@@ -137,6 +130,21 @@
         {
           "name": "aquasecurity:trivy:Type",
           "value": "debian"
+        }
+      ]
+    },
+    {
+      "bom-ref": "aebaeb4f-dad0-4804-b977-874191798d7e",
+      "type": "application",
+      "name": "app/myapp",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:Class",
+          "value": "lang-pkgs"
+        },
+        {
+          "name": "aquasecurity:trivy:Type",
+          "value": "gobinary"
         }
       ]
     },
@@ -368,18 +376,18 @@
   ],
   "dependencies": [
     {
-      "ref": "80315fcb-f98e-4bad-9a6d-b3f70cf4c8d7",
-      "dependsOn": [
-        "pkg:golang/github.com/vsaisuneeth/myapp"
-      ]
-    },
-    {
-      "ref": "e9d582e0-4b06-4a26-a57f-5e24ef5387e5",
+      "ref": "a545c5b3-5a94-47a1-aefb-8887552431aa",
       "dependsOn": [
         "pkg:deb/debian/base-files@12.4%2Bdeb12u15?arch=amd64&distro=debian-12.15",
         "pkg:deb/debian/media-types@10.0.0?arch=all&distro=debian-12.15",
         "pkg:deb/debian/netbase@6.4?arch=all&distro=debian-12.15",
         "pkg:deb/debian/tzdata@2026b-0%2Bdeb12u1?arch=all&distro=debian-12.15"
+      ]
+    },
+    {
+      "ref": "aebaeb4f-dad0-4804-b977-874191798d7e",
+      "dependsOn": [
+        "pkg:golang/github.com/vsaisuneeth/myapp"
       ]
     },
     {
@@ -409,10 +417,10 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:oci/myapp@sha256:4b5fe6437a93928ece33ea0981559a56b769ad1de58dca4a9eda015a1846963e?arch=amd64&repository_url=index.docker.io%2Flibrary%2Fmyapp",
+      "ref": "pkg:oci/myapp@sha256:4b5fe6437a93928ece33ea0981559a56b769ad1de58dca4a9eda015a1846963e?arch=amd64&repository_url=238395401573.dkr.ecr.ap-south-1.amazonaws.com%2Fmyapp",
       "dependsOn": [
-        "80315fcb-f98e-4bad-9a6d-b3f70cf4c8d7",
-        "e9d582e0-4b06-4a26-a57f-5e24ef5387e5"
+        "a545c5b3-5a94-47a1-aefb-8887552431aa",
+        "aebaeb4f-dad0-4804-b977-874191798d7e"
       ]
     }
   ],

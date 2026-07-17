@@ -38,3 +38,16 @@ jobs:
 
       - name: Scan Docker Image
         run: trivy image --severity HIGH,CRITICAL --exit-code 1 myapp:dev
+
+      - name: Generate SBOM
+        run: |
+          trivy image \
+            --format cyclonedx \
+            --output sbom.cdx.json \
+            myapp:dev
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.cdx.json
