@@ -44,6 +44,19 @@ jobs:
         run: |
           docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
 
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: 238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.cdx.json
+
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
