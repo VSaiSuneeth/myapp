@@ -13,41 +13,49 @@ jobs:
       id-token: write
       contents: read
 
+    env:
+      AWS_REGION: ap-south-1
+      ACCOUNT_ID: 238395401573
+      IMAGE_NAME: myapp
+
     steps:
-      # Step 1: Checkout repository
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Step 2: Configure AWS Credentials (OIDC)
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::238395401573:role/github-actions-ecr-push
           aws-region: ap-south-1
 
-      # Step 3: Login to Amazon ECR
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Step 4: Build Docker Image
       - name: Build Docker Image
         run: |
-          docker build -t myapp .
+          docker build -t $IMAGE_NAME .
 
-      # Step 5: Tag Docker Image
       - name: Tag Docker Image
         run: |
-          docker tag myapp:latest 238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
+          docker tag $IMAGE_NAME:latest $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
 
-      # Step 6: Push Docker Image to ECR
       - name: Push Docker Image
         run: |
-          docker push 238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
+          docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
 
-      # Step 7: Deploy on EC2
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign Docker Image (Keyless)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign sign --yes \
+          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
+
       - name: Deploy on EC2
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
