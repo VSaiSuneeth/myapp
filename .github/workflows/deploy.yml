@@ -34,20 +34,20 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t $IMAGE_NAME .
+          docker build -t $IMAGE_NAME:${{ github.sha }} .
 
       - name: Tag Docker Image
         run: |
-          docker tag $IMAGE_NAME:latest $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
+          docker tag $IMAGE_NAME:${{ github.sha }} $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
       - name: Push Docker Image
         run: |
-          docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
+          docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          image: 238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
+          image: 238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
           format: cyclonedx-json
           output-file: sbom.cdx.json
 
@@ -65,7 +65,7 @@ jobs:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           cosign sign --yes \
-          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
+          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
       - name: Verify Docker Image Signature
         env:
@@ -74,7 +74,7 @@ jobs:
           cosign verify \
           --certificate-identity-regexp "https://github.com/VSaiSuneeth/myapp/.github/workflows/deploy.yml@refs/heads/main" \
           --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
+          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.2.0
@@ -84,4 +84,4 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /home/ubuntu
-            sudo ./deploy.sh
+            sudo ./deploy.sh ${{ github.sha }}
