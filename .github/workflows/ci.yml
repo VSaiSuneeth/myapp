@@ -1,4 +1,4 @@
-name: OIDC Debug
+name: Build and Push Docker Image
 
 on:
   push:
@@ -10,31 +10,26 @@ permissions:
   contents: read
 
 jobs:
-  debug:
+  docker:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Print GitHub Context
-        run: |
-          echo "Repository: $GITHUB_REPOSITORY"
-          echo "Ref: $GITHUB_REF"
-          echo "Actor: $GITHUB_ACTOR"
-
-      - name: Decode OIDC Token
-        run: |
-          TOKEN=$(curl -s \
-            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" \
-            | jq -r '.value')
-
-          echo "$TOKEN" | cut -d "." -f2 | base64 -d || true
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - run: aws sts get-caller-identity
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - run: |
+          docker build -t myapp .
+
+      - run: |
+          docker tag myapp:latest \
+          238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
+
+      - run: |
+          docker push \
+          238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
