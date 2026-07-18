@@ -80,13 +80,22 @@ jobs:
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
+      - name: Checkout GitOps Repository
+        uses: actions/checkout@v4
+        with:
+          repository: VSaiSuneeth/myapp-gitops
+          ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY }}
+          persist-credentials: false
+          path: gitops
+
       - name: Update Helm Chart
         run: |
-          sed -i "s|repository:.*|repository: $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME|g" myapp-chart/values.yaml
-          sed -i "s|tag:.*|tag: \"${{ github.sha }}\"|g" myapp-chart/values.yaml
+          sed -i "s|repository:.*|repository: $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME|g" gitops/myapp-chart/values.yaml
+          sed -i "s|tag:.*|tag: \"${{ github.sha }}\"|g" gitops/myapp-chart/values.yaml
 
-      - name: Commit Updated Helm Chart
+      - name: Commit and Push GitOps Changes
         run: |
+          cd gitops
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
@@ -94,6 +103,7 @@ jobs:
 
           git diff --cached --quiet || git commit -m "Update image tag to ${{ github.sha }}"
 
-      - name: Push Changes
-        run: |
-          git push
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          git push origin main
