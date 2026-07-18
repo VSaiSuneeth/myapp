@@ -19,10 +19,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Source
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -33,20 +31,15 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker Image
+      - name: Build Image
         run: |
-          docker build -t $IMAGE_NAME:${{ github.sha }} .
+          docker build \
+            -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }} .
 
-      - name: Tag Docker Image
-        run: |
-          docker tag \
-          $IMAGE_NAME:${{ github.sha }} \
-          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
-
-      - name: Push Docker Image
+      - name: Push Image
         run: |
           docker push \
-          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
+            $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
@@ -64,7 +57,7 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
-      - name: Sign Docker Image
+      - name: Sign Image
         env:
           COSIGN_EXPERIMENTAL: "1"
         run: |
@@ -88,22 +81,35 @@ jobs:
           persist-credentials: false
           path: gitops
 
-      - name: Update Helm Chart
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          eval "$(ssh-agent -s)"
+          ssh-add - <<< "${{ secrets.GITOPS_DEPLOY_KEY }}"
+
+      - name: Force SSH Remote
+        run: |
+          cd gitops
+          git remote set-url origin git@github.com:VSaiSuneeth/myapp-gitops.git
+
+      - name: Update Helm Values
         run: |
           sed -i "s|repository:.*|repository: $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME|g" gitops/myapp-chart/values.yaml
           sed -i "s|tag:.*|tag: \"${{ github.sha }}\"|g" gitops/myapp-chart/values.yaml
 
-      - name: Commit and Push GitOps Changes
+      - name: Commit Changes
         run: |
           cd gitops
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
 
           git add myapp-chart/values.yaml
 
           git diff --cached --quiet || git commit -m "Update image tag to ${{ github.sha }}"
 
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
+      - name: Push GitOps Repository
+        run: |
+          cd gitops
           git push origin main
