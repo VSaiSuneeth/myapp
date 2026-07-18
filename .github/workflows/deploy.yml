@@ -62,7 +62,7 @@ jobs:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           cosign sign --yes \
-          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
+            $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
       - name: Verify Signature
         env:
@@ -72,6 +72,17 @@ jobs:
             --certificate-identity-regexp "https://github.com/VSaiSuneeth/myapp/.github/workflows/deploy.yml@refs/heads/main" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
+
+      - name: Get Image Digest
+        id: digest
+        run: |
+          DIGEST=$(aws ECR describe-images \
+            --repository-name $IMAGE_NAME \
+            --region $AWS_REGION \
+            --image-ids imageTag=${{ github.sha }} \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
       - name: Load SSH Key (Runs before checkout so the key persists)
         uses: webfactory/ssh-agent@v0.9.0
@@ -93,8 +104,9 @@ jobs:
 
       - name: Update Helm Values
         run: |
-          sed -i "s|repository:.*|repository: $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME|g" gitops/myapp-chart/values.yaml
-          sed -i "s|tag:.*|tag: \"${{ github.sha }}\"|g" gitops/myapp-chart/values.yaml
+          IMAGE="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME@${{ steps.digest.outputs.digest }}"
+          sed -i "s|repository:.*|repository: $IMAGE|g" gitops/myapp-chart/values.yaml
+          sed -i "s|tag:.*|tag: \"\"|g" gitops/myapp-chart/values.yaml
 
       - name: Commit Changes
         run: |

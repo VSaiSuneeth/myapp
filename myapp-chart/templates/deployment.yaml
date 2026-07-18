@@ -1,7 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: myapp
+  labels:
+    app: myapp
 
 spec:
   replicas: {{ .Values.replicaCount }}
@@ -16,9 +19,17 @@ spec:
         app: myapp
 
     spec:
+      imagePullSecrets:
+{{- toYaml .Values.imagePullSecrets | nindent 8 }}
+
       containers:
-      - name: myapp
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}   
-        ports:
-        - containerPort: 8080
+        - name: myapp
+          {{- if .Values.image.tag }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.image.repository }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          ports:
+            - containerPort: 8080
