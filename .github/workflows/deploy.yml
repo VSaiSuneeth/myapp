@@ -26,7 +26,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::238395401573:role/github-actions-ecr-push
-          aws-region: ap-south-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
@@ -76,15 +76,16 @@ jobs:
       - name: Get Image Digest
         id: digest
         run: |
-          DIGEST=$(aws ECR describe-images \
+          DIGEST=$(aws ecr describe-images \
             --repository-name $IMAGE_NAME \
             --region $AWS_REGION \
             --image-ids imageTag=${{ github.sha }} \
             --query 'imageDetails[0].imageDigest' \
             --output text)
+
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
-      - name: Load SSH Key (Runs before checkout so the key persists)
+      - name: Load SSH Key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.GITOPS_DEPLOY_KEY }}
@@ -96,26 +97,22 @@ jobs:
           ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY }}
           path: gitops
 
-      - name: Verify GitOps Remote Connection
-        run: |
-          cd gitops
-          git remote -v
-          ssh -T git@github.com || true
-
       - name: Update Helm Values
         run: |
           IMAGE="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME@${{ steps.digest.outputs.digest }}"
+
           sed -i "s|repository:.*|repository: $IMAGE|g" gitops/myapp-chart/values.yaml
           sed -i "s|tag:.*|tag: \"\"|g" gitops/myapp-chart/values.yaml
 
       - name: Commit Changes
         run: |
           cd gitops
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
 
           git add myapp-chart/values.yaml
-          git diff --cached --quiet || git commit -m "Update image tag to ${{ github.sha }}"
+
+          git diff --cached --quiet || git commit -m "Deploy ${{ github.sha }}"
 
       - name: Push GitOps Repository
         run: |
