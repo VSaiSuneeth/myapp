@@ -76,8 +76,9 @@ jobs:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           cosign verify \
-          --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
+            --certificate-identity-regexp "https://github.com/VSaiSuneeth/myapp/.github/workflows/deploy.yml@refs/heads/main" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
       - name: Update Helm Chart
         run: |
