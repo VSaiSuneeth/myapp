@@ -5,22 +5,24 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  AWS_REGION: ap-south-1
+  ACCOUNT_ID: 238395401573
+  IMAGE_NAME: myapp
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    permissions:
-      id-token: write
-      contents: read
-
-    env:
-      AWS_REGION: ap-south-1
-      ACCOUNT_ID: 238395401573
-      IMAGE_NAME: myapp
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -29,7 +31,6 @@ jobs:
           aws-region: ap-south-1
 
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker Image
@@ -38,16 +39,19 @@ jobs:
 
       - name: Tag Docker Image
         run: |
-          docker tag $IMAGE_NAME:${{ github.sha }} $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
+          docker tag \
+          $IMAGE_NAME:${{ github.sha }} \
+          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
       - name: Push Docker Image
         run: |
-          docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
+          docker push \
+          $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          image: 238395401573.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
+          image: ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: cyclonedx-json
           output-file: sbom.cdx.json
 
@@ -60,28 +64,35 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
-      - name: Sign Docker Image (Keyless)
+      - name: Sign Docker Image
         env:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           cosign sign --yes \
           $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
-      - name: Verify Docker Image Signature
+      - name: Verify Signature
         env:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           cosign verify \
-          --certificate-identity-regexp "https://github.com/VSaiSuneeth/myapp/.github/workflows/deploy.yml@refs/heads/main" \
-          --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+          --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
           $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
 
-      - name: Deploy on EC2
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /home/ubuntu
-            sudo ./deploy.sh ${{ github.sha }}
+      - name: Update Helm Chart
+        run: |
+          sed -i "s|repository:.*|repository: $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME|g" myapp-chart/values.yaml
+          sed -i "s|tag:.*|tag: \"${{ github.sha }}\"|g" myapp-chart/values.yaml
+
+      - name: Commit Updated Helm Chart
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add myapp-chart/values.yaml
+
+          git diff --cached --quiet || git commit -m "Update image tag to ${{ github.sha }}"
+
+      - name: Push Changes
+        run: |
+          git push
